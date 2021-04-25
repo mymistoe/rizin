@@ -193,12 +193,9 @@ RZ_API RZ_OWN char *rz_type_as_string(RzTypeDB *typedb, RZ_NONNULL const RzType 
 RZ_API void rz_type_free(RzType *type);
 
 /* c */
-RZ_API char *rz_type_parse_c_string(RzTypeDB *typedb, const char *code, char **error_msg);
-RZ_API char *rz_type_parse_c_file(RzTypeDB *typedb, const char *path, const char *dir, char **error_msg);
+RZ_API int rz_type_parse_c_string(RzTypeDB *typedb, const char *code, char **error_msg);
+RZ_API int rz_type_parse_c_file(RzTypeDB *typedb, const char *path, const char *dir, char **error_msg);
 RZ_API void rz_type_parse_c_reset(RzTypeDB *typedb);
-
-RZ_API void rz_type_db_remove_parsed_type(RzTypeDB *typedb, const char *name);
-RZ_API void rz_type_db_save_parsed_type(RzTypeDB *typedb, const char *parsed);
 
 RZ_API bool rz_type_atomic_eq(RzTypeDB *typedb, RzType *typ1, RzType *typ2);
 RZ_API bool rz_type_atomic_str_eq(RzTypeDB *typedb, RzType *typ1, RZ_NONNULL const char *name);

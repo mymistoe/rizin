@@ -366,6 +366,7 @@ static void core_types_struct_print_c(RzTypeDB *typedb, RzBaseType *btype, bool 
 		separator = multiline ? "\t" : "";
 		RzTypeStructMember *memb;
 		rz_vector_foreach(&btype->struct_data.members, memb) {
+			rz_return_if_fail(memb->type);
 			const char *membtype = rz_type_as_string(typedb, memb->type);
 			if (memb->type->kind == RZ_TYPE_KIND_ARRAY) {
 				rz_cons_printf("%s%s %s[%" PFMT64d "]", separator, membtype,
@@ -1005,13 +1006,8 @@ RZ_IPI void rz_types_define(RzCore *core, const char *type) {
 		return;
 	}
 	char *error_msg = NULL;
-	char *out = rz_type_parse_c_string(core->analysis->typedb, tmp, &error_msg);
-	free(tmp);
-	if (out) {
-		rz_type_db_save_parsed_type(core->analysis->typedb, out);
-		free(out);
-	}
-	if (error_msg) {
+	int result = rz_type_parse_c_string(core->analysis->typedb, tmp, &error_msg);
+	if (result && error_msg) {
 		eprintf("%s", error_msg);
 		free(error_msg);
 	}
@@ -1031,26 +1027,18 @@ RZ_IPI void rz_types_open_file(RzCore *core, const char *path) {
 		char *tmp = rz_core_editor(core, "*.h", "");
 		if (tmp) {
 			char *error_msg = NULL;
-			char *out = rz_type_parse_c_string(typedb, tmp, &error_msg);
-			if (out) {
-				rz_type_db_save_parsed_type(typedb, out);
-				free(out);
-			}
-			if (error_msg) {
-				fprintf(stderr, "%s", error_msg);
+			int result = rz_type_parse_c_string(core->analysis->typedb, tmp, &error_msg);
+			if (result && error_msg) {
+				eprintf("%s", error_msg);
 				free(error_msg);
 			}
 			free(tmp);
 		}
 	} else {
 		char *error_msg = NULL;
-		char *out = rz_type_parse_c_file(typedb, path, dir, &error_msg);
-		if (out) {
-			rz_type_db_save_parsed_type(typedb, out);
-			free(out);
-		}
-		if (error_msg) {
-			fprintf(stderr, "%s", error_msg);
+		int result = rz_type_parse_c_file(typedb, path, dir, &error_msg);
+		if (result && error_msg) {
+			eprintf("%s", error_msg);
 			free(error_msg);
 		}
 	}
@@ -1063,13 +1051,10 @@ RZ_IPI void rz_types_open_editor(RzCore *core, const char *typename) {
 	char *tmp = rz_core_editor(core, "*.h", str);
 	if (tmp) {
 		char *error_msg = NULL;
-		char *out = rz_type_parse_c_string(typedb, tmp, &error_msg);
-		if (out) {
-			// remove previous types and save new edited types
-			rz_type_db_purge(typedb);
-			rz_type_parse_c_reset(typedb);
-			rz_type_db_save_parsed_type(typedb, out);
-			free(out);
+		int result = rz_type_parse_c_string(typedb, tmp, &error_msg);
+		if (result) {
+			// TODO: remove previous types and save new edited types
+			//rz_type_db_purge(typedb);
 		}
 		if (error_msg) {
 			eprintf("%s\n", error_msg);
