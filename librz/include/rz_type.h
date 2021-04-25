@@ -28,7 +28,8 @@ typedef struct rz_ast_parser_t RzASTParser;
 
 typedef struct rz_type_db_t {
 	void *user;
-	Sdb *sdb_types;
+	HtPP *types; // A hashtable of RzBaseType
+	Sdb *sdb_types; // for function signatures
 	Sdb *formats; // for `pf` formats
 	RzTypeTarget *target;
 	RzASTParser *parser;
