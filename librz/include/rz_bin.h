@@ -249,6 +249,7 @@ typedef struct rz_bin_object_t {
 	ut64 boffset;
 	ut64 size;
 	ut64 obj_size;
+	RzList /*<RzBinVirtualFile>*/ *vfiles;
 	RzList /*<RzBinMap>*/ *maps;
 	RzList /*<RzBinSection>*/ *sections;
 	RzList /*<RzBinImport>*/ *imports;
@@ -520,6 +521,7 @@ typedef struct rz_bin_plugin_t {
 	bool (*check_buffer)(RzBuffer *buf);
 	ut64 (*baddr)(RzBinFile *bf);
 	ut64 (*boffset)(RzBinFile *bf);
+	RzList /*<RzBinVirtualFile>*/ *(*virtual_files)(RzBinFile *bf);
 	RzList /*<RzBinMap>*/ *(*maps)(RzBinFile *bf);
 	RzBinAddr *(*binsym)(RzBinFile *bf, RzBinSpecialSymbol num);
 	RzList /*<RzBinAddr>*/ *(*entries)(RzBinFile *bf);
@@ -559,6 +561,11 @@ typedef struct rz_bin_plugin_t {
 
 typedef void (*RzBinSymbollCallback)(RzBinObject *obj, void *symbol);
 
+typedef struct rz_bin_virtual_file_t {
+	RZ_OWN RZ_NONNULL char *name;
+	RZ_OWN RZ_NONNULL RzBuffer *buf;
+} RzBinVirtualFile;
+
 /// Description of a single memory mapping into virtual memory from a binary
 typedef struct rz_bin_map_t {
 	ut64 paddr; ///< address of the map inside the file
@@ -567,6 +574,13 @@ typedef struct rz_bin_map_t {
 	ut64 vsize; ///< size to map in the destination address space. If vsize > psize, excessive bytes are meant to be filled with 0
 	RZ_NULLABLE char *name;
 	ut32 perm;
+
+	/**
+	 * If not NULL, the data will be taken from the virtual file returned by the
+	 * plugin's virtual_file callback matching the given name.
+	 * If NULL, the mapping will simply be taken from the raw file.
+	 */
+	RZ_NULLABLE char *vfile_name;
 } RzBinMap;
 
 typedef struct rz_bin_section_t {
@@ -732,6 +746,7 @@ typedef struct rz_bin_bind_t {
 	ut32 visibility;
 } RzBinBind;
 
+RZ_API void rz_bin_virtual_file_free(RzBinVirtualFile *vfile);
 RZ_API void rz_bin_map_free(RzBinMap *map);
 RZ_API RzList *rz_bin_maps_of_file_sections(RzBinFile *binfile);
 RZ_API RzList *rz_bin_sections_of_maps(RzList /*<RzBinMap>*/ *maps);

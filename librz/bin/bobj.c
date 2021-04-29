@@ -39,6 +39,7 @@ static void object_delete_items(RzBinObject *o) {
 	ht_up_free(o->addrzklassmethod);
 	rz_list_free(o->entries);
 	rz_list_free(o->maps);
+	rz_list_free(o->vfiles);
 	rz_list_free(o->fields);
 	rz_list_free(o->imports);
 	rz_list_free(o->libs);
@@ -307,6 +308,9 @@ RZ_API int rz_bin_object_set_items(RzBinFile *bf, RzBinObject *o) {
 	if (p->entries) {
 		o->entries = p->entries(bf);
 		REBASE_PADDR(o, o->entries, RzBinAddr);
+	}
+	if (p->virtual_files) {
+		o->vfiles = p->virtual_files(bf);
 	}
 	if (p->maps) {
 		o->maps = p->maps(bf);

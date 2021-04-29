@@ -673,7 +673,7 @@ static bool io_create_mem_map(RzIO *io, RZ_NULLABLE RzCoreFile *cf, RzBinMap *ma
 	return true;
 }
 
-static void add_map(RzCore *core, RZ_NULLABLE RzCoreFile *cf, RzBinMap *map, ut64 addr, int fd) {
+static void add_map(RzCore *core, RZ_NULLABLE RzCoreFile *cf, RzBinFile *bf, RzBinMap *map, ut64 addr, int fd) {
 	if (!rz_io_desc_get(core->io, fd) || UT64_ADD_OVFCHK(map->psize, map->paddr) ||
 		UT64_ADD_OVFCHK(map->vsize, addr) || !map->vsize) {
 		return;
@@ -694,8 +694,32 @@ static void add_map(RzCore *core, RZ_NULLABLE RzCoreFile *cf, RzBinMap *map, ut6
 		return;
 	}
 
-	// then we map the part of the section that comes from the physical file
-	char *map_name = map->name ? rz_str_newf("fmap.%s", map->name) : rz_str_newf("fmap.%d", fd);
+	const char *prefix = "fmap";
+
+	// open and use a different fd for virtual files
+	if (map->vfile_name) {
+		char *uri = rz_str_newf("vfile://%" PFMT32u "/%s", bf->id, map->vfile_name);
+		if (!uri) {
+			return;
+		}
+		RzIODesc *desc = find_reusable_file(core->io, cf, uri, map->perm);
+		if (!desc) {
+			desc = rz_io_open_nomap(core->io, uri, map->perm, 0664);
+			if (!desc) {
+				free(uri);
+				return;
+			}
+			if (cf) {
+				rz_pvector_push(&cf->extra_files, desc);
+			}
+		}
+		free(uri);
+		fd = desc->fd;
+		prefix = "vmap";
+	}
+
+	// then we map the part of the section that comes from the physical (or virtual) file
+	char *map_name = map->name ? rz_str_newf("%s.%s", prefix, map->name) : rz_str_newf("%s.%d", prefix, fd);
 	if (!map_name) {
 		return;
 	}
@@ -746,7 +770,7 @@ RZ_API bool rz_core_bin_apply_maps(RzCore *core, RzBinFile *binfile, bool va) {
 			va_map = VA_NOREBASE;
 		}
 		ut64 addr = rva(o, map->paddr, map->vaddr, va_map);
-		add_map(core, cf, map, addr, binfile->fd);
+		add_map(core, cf, binfile, map, addr, binfile->fd);
 	}
 	rz_io_update(core->io);
 	return true;
